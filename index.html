@@ -291,7 +291,11 @@ function updateSky(now){
 }
 
 // ---------- Ses ----------
-const adhan=new Audio("ezan.mp3"); adhan.preload="auto";
+const adhan=new Audio(); adhan.preload="auto";
+// mp3'ü tek parça indirip bellekten çal: çevrimdışında da sorunsuz çalışır
+fetch("ezan.mp3").then(r=>{ if(!r.ok) throw 0; return r.blob(); })
+  .then(b=>{ adhan.src=URL.createObjectURL(b); })
+  .catch(()=>{ adhan.src="ezan.mp3"; });
 let audioUnlocked=false;
 function unlockAudio(){
   // Mobil tarayıcılar ilk kullanıcı etkileşimi olmadan ses çalmaz
