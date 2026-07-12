@@ -1,5 +1,5 @@
-const CACHE = "ezan-vakti-v7";
-const CORE = ["./", "./index.html", "./ezan.mp3", "./manifest.json", "./hilal-192.png", "./hilal-512.png"];
+const CACHE = "ezan-vakti-v8";
+const CORE = ["./", "./index.html", "./ezan.mp3", "./turku.mp3", "./manifest.json", "./hilal-192.png", "./hilal-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
