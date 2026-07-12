@@ -332,6 +332,15 @@ footer{text-align:center;margin-top:28px;font-size:11px;color:rgba(139,147,184,.
         <div class="qibla-hint" id="qiblaHint">Pusulayı başlatın; telefonu döndürün, 🕋 işareti üstteki beyaz oka gelince kıbleye dönüksünüz.</div>
       </div>
     </div>
+    <div class="card">
+      <h3>Türkü</h3>
+      <button class="btn gold" id="turkuBtn">🎵 Ahlat'ın Başındayım — Çal</button>
+      <div class="switch-row" style="margin-top:12px">
+        <span>Açılışta otomatik çal</span>
+        <label class="switch"><input type="checkbox" id="turkuAuto"><span class="slider"></span></label>
+      </div>
+      <div class="note">Otomatik mod açıkken uygulama açılır açılmaz, ekrana ilk dokunuşunuzla türkü başlar (tarayıcılar dokunuş olmadan ses başlatmaya izin vermez).</div>
+    </div>
     <div class="card silsile">
       <h3>Ülyani Derneği</h3>
       <div class="silsile-title">Sâdât-ı Kirâmın İsimleri</div>
@@ -350,7 +359,7 @@ footer{text-align:center;margin-top:28px;font-size:11px;color:rgba(139,147,184,.
     <div class="note" style="padding:0 4px">Vakitler astronomik hesapla (Fecr 18°, İşa 17° – Diyanet yöntemi) üretilir; Diyanet takvimiyle birkaç dakika fark olabilir. Safari'de <b>Paylaş → Ana Ekrana Ekle</b> ile uygulama gibi kullanabilirsiniz.</div>
   </div>
 
-  <footer>EZAN VAKTİ · GEOSER · v3.1</footer>
+  <footer>EZAN VAKTİ · GEOSER · v3.2</footer>
 </div>
 
 <!-- Güncelleme bildirimi -->
@@ -502,6 +511,7 @@ async function openSurah(n){
 
 let qPlaylist=[], qIdx=-1;
 async function startSurahAudio(n){
+  if(typeof turku!=="undefined"&&!turku.paused){ turku.pause(); }
   const btn=document.getElementById("qPlayBtn");
   const player=document.getElementById("qAudioEl");
   btn.textContent="Yükleniyor…"; btn.disabled=true;
@@ -725,6 +735,7 @@ function unlockAudio(){
   adhan.play().then(()=>{ adhan.pause(); adhan.currentTime=0; audioUnlocked=true; }).catch(()=>{});
 }
 function playAdhan(){
+  if(typeof turku!=="undefined"&&!turku.paused){ turku.pause(); syncTurkuBtn(); } // ezanla çakışmasın
   adhan.currentTime=0;
   adhan.play().catch(()=>{ playTone(); }); // ezan çalamazsa yedek melodi
 }
@@ -912,6 +923,34 @@ if("serviceWorker" in navigator){
 }
 window.addEventListener("offline",()=>{ document.getElementById("gpsStatus").textContent="Çevrimdışı mod — vakitler ve ezan çalışmaya devam eder."; });
 window.addEventListener("online",()=>{ document.getElementById("gpsStatus").textContent=""; });
+
+// ---------- Türkü: Ahlat'ın Başındayım ----------
+const turku=new Audio(); turku.preload="none";
+fetch("turku.mp3").then(r=>{ if(!r.ok) throw 0; return r.blob(); })
+  .then(b=>{ turku.src=URL.createObjectURL(b); })
+  .catch(()=>{ turku.src="turku.mp3"; });
+const turkuBtn=document.getElementById("turkuBtn");
+const turkuAuto=document.getElementById("turkuAuto");
+turkuAuto.checked=store.get("ev_turku_auto")!=="0"; // varsayılan: açık
+turkuAuto.onchange=()=>store.set("ev_turku_auto",turkuAuto.checked?"1":"0");
+function syncTurkuBtn(){
+  turkuBtn.textContent=turku.paused?"🎵 Ahlat'ın Başındayım — Çal":"⏹ Türküyü durdur";
+}
+turkuBtn.onclick=()=>{
+  if(turku.paused){ if(!adhan.paused) stopAdhan(); turku.play().catch(()=>{}); }
+  else turku.pause();
+  syncTurkuBtn();
+};
+turku.onended=syncTurkuBtn; turku.onpause=syncTurkuBtn; turku.onplay=syncTurkuBtn;
+// Açılışta otomatik: ilk dokunuşta başlat
+let turkuAutoPlayed=false;
+function turkuAutoStart(){
+  if(turkuAutoPlayed||!turkuAuto.checked) return;
+  turkuAutoPlayed=true;
+  turku.play().catch(()=>{});
+}
+document.addEventListener("touchstart",turkuAutoStart,{once:true});
+document.addEventListener("click",turkuAutoStart,{once:true});
 
 // ---------- Namaz Takibi ----------
 const PRAYERS=[["sabah","Sabah"],["ogle","Öğle"],["ikindi","İkindi"],["aksam","Akşam"],["yatsi","Yatsı"]];
