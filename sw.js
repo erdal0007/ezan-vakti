@@ -1,4 +1,4 @@
-const CACHE = "ezan-vakti-v3";
+const CACHE = "ezan-vakti-v4";
 const CORE = ["./", "./index.html", "./ezan.mp3", "./manifest.json", "./hilal-192.png", "./hilal-512.png"];
 
 self.addEventListener("install", e => {
@@ -46,7 +46,18 @@ async function handleAudio(req) {
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (url.pathname.endsWith(".mp3")) {
-    e.respondWith(handleAudio(e.request));
+    if (url.origin === location.origin) e.respondWith(handleAudio(e.request));
+    return; // Kur'an CDN sesleri: tarayıcı doğal akışla çalar
+  }
+  // Kur'an metni: önce ağ, çevrimdışıysa önbellekten (okunan sureler kaydedilir)
+  if (url.hostname === "api.alquran.cloud") {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
     return;
   }
   if (url.hostname.includes("fonts.g")) {
