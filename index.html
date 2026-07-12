@@ -110,6 +110,23 @@ input:checked+.slider:before{transform:translateX(21px)}
 .qibla-deg{font-size:15px;color:var(--gold-soft);font-weight:600;text-align:center}
 .qibla-hint{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.5}
 .qibla-ok{color:#7BD88F !important;font-weight:700}
+/* Marka */
+.brand{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+.brand img{width:34px;height:34px;border-radius:9px}
+.brand .b-name{font-family:'Marcellus',serif;font-size:21px;color:var(--ivory);letter-spacing:.04em}
+.brand .b-sub{font-size:10.5px;letter-spacing:.24em;color:var(--muted);margin-top:1px}
+/* Güncelleme bildirimi */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--deep);border:1px solid var(--gold);border-radius:13px;padding:12px 16px;display:none;align-items:center;gap:12px;z-index:99;box-shadow:0 8px 30px rgba(0,0,0,.5);font-size:14.5px;max-width:92vw}
+.toast.show{display:flex}
+.toast button{background:var(--gold);color:#241A05;border:none;border-radius:9px;padding:8px 14px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;flex:none}
+/* İmsakiye tablosu */
+.imsakiye-table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.imsakiye-table th{color:var(--gold-soft);font-weight:600;padding:8px 3px;border-bottom:1px solid var(--line);text-align:center;font-size:11.5px;letter-spacing:.03em}
+.imsakiye-table td{padding:7.5px 3px;text-align:center;border-bottom:1px solid rgba(139,147,184,.1);color:var(--ivory)}
+.imsakiye-table td:first-child{text-align:left;color:var(--muted);white-space:nowrap}
+.imsakiye-table tr.today td{background:rgba(216,162,74,.14);color:var(--gold-soft);font-weight:700}
+.imsakiye-table tr.today td:first-child{border-radius:8px 0 0 8px}
+.imsakiye-table tr.today td:last-child{border-radius:0 8px 8px 0}
 footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184,.6);letter-spacing:.05em}
 @media (prefers-reduced-motion: reduce){body{transition:none}}
 </style>
@@ -121,6 +138,13 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
   <span>GEOSER</span>
 </div>
 <div class="wrap">
+  <div class="brand">
+    <img src="hilal-192.png" alt="">
+    <div>
+      <div class="b-name">Ezan Vakti</div>
+      <div class="b-sub">GEOSER</div>
+    </div>
+  </div>
   <header>
     <button class="loc" id="locBtn" title="Konumumu kullan">
       <svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
@@ -155,7 +179,8 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
   <div class="controls">
     <div class="card">
       <button class="btn gold" id="quranBtn" style="font-size:17px;padding:14px">📖 Kur'an-ı Kerim — Oku &amp; Dinle</button>
-      <div class="note">114 sure: Arapça metin, Diyanet meali ve dünyaca ünlü hafızlardan dinleme.</div>
+      <button class="btn" id="imsakiyeBtn" style="margin-top:10px">📅 Aylık İmsakiye</button>
+      <div class="note">114 sure: Arapça metin, Diyanet meali ve dünyaca ünlü hafızlardan dinleme. İmsakiye: önümüzdeki 30 günün vakit çizelgesi.</div>
     </div>
     <div class="card">
       <h3>Konum</h3>
@@ -169,7 +194,8 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
         <label class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></label>
       </div>
       <button class="btn" id="testAdhan" style="margin-top:12px">🔊 Ezanı dinle</button>
-      <div class="note">Müezzin: <b>Mişari Raşid el-Afâsî</b>. Ezan yalnızca uygulama ekranda açıkken okunur; arka plan bildirimi iOS sürümünde gelecek. Anahtarı açtıktan sonra sayfayı kapatmayın.</div>
+      <button class="btn" id="notifBtn" style="margin-top:10px">🔔 Vakit bildirimlerine izin ver</button>
+      <div class="note">Müezzin: <b>Mişari Raşid el-Afâsî</b>. Ezan yalnızca uygulama ekranda açıkken okunur; bildirimler ise uygulama arka plandayken de gelir (Android). Tam arka plan desteği iOS/Android sürümünde gelecek.</div>
     </div>
     <div class="card">
       <h3>Kıble Pusulası</h3>
@@ -217,7 +243,22 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
     <div class="note" style="padding:0 4px">Vakitler astronomik hesapla (Fecr 18°, İşa 17° – Diyanet yöntemi) üretilir; Diyanet takvimiyle birkaç dakika fark olabilir. Safari'de <b>Paylaş → Ana Ekrana Ekle</b> ile uygulama gibi kullanabilirsiniz.</div>
   </div>
 
-  <footer>EZAN VAKTİ · GEOSER PROTOTİP</footer>
+  <footer>EZAN VAKTİ · GEOSER · v2.0</footer>
+</div>
+
+<!-- Güncelleme bildirimi -->
+<div class="toast" id="updateToast">
+  <span>Yeni sürüm hazır</span>
+  <button onclick="location.reload()">Güncelle</button>
+</div>
+
+<!-- Aylık İmsakiye ekranı -->
+<div class="quran-overlay" id="imsakiyeOverlay">
+  <div class="q-head">
+    <button class="back" id="imBack">‹</button>
+    <div class="q-title">Aylık İmsakiye</div>
+  </div>
+  <div class="q-body" id="imBody"></div>
 </div>
 
 <!-- Kur'an-ı Kerim ekranı -->
@@ -232,6 +273,11 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
 
 <script>
 // ================= KUR'AN-I KERİM =================
+// Ayar hafızası (tüm bloklar kullanır)
+const store={
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
 const RECITERS=[
   ["ar.alafasy","Mişari Raşid el-Afâsî (Kuveyt)"],
   ["ar.abdulbasitmurattal","Abdülbasit Abdüssamed (Mısır)"],
@@ -242,7 +288,7 @@ const RECITERS=[
   ["ar.mahermuaiqly","Mâhir el-Muaykılî (Mekke İmamı)"],
   ["ar.hanirifai","Hâni er-Rifâî (Cidde)"]
 ];
-let qReciter="ar.alafasy", surahList=null, currentSurah=null;
+let qReciter=store.get("ev_reciter")||"ar.alafasy", surahList=null, currentSurah=null;
 const qOverlay=document.getElementById("quranOverlay"),
       qBody=document.getElementById("qBody"),
       qTitle=document.getElementById("qTitle"),
@@ -278,7 +324,7 @@ async function showSurahList(){
     </div>
     <input class="q-search" id="qSearch" placeholder="Sure ara… (ör. Yasin)">
     <div id="surahListEl"></div>`;
-  document.getElementById("reciterSel").onchange=e=>{ qReciter=e.target.value; };
+  document.getElementById("reciterSel").onchange=e=>{ qReciter=e.target.value; store.set("ev_reciter",qReciter); };
   const listEl=document.getElementById("surahListEl");
   const render=(filter)=>{
     listEl.innerHTML=list
@@ -383,6 +429,13 @@ const CITIES = [
 ];
 let state = { lat:39.9334, lng:32.8597, name:"Ankara", sound:false, lastPlayed:"" };
 
+// ---------- Kayıtlı ayarları yükle ----------
+(function loadSaved(){
+  const loc=store.get("ev_loc");
+  if(loc){ try{ const l=JSON.parse(loc); state.lat=l.lat; state.lng=l.lng; state.name=l.name; }catch(e){} }
+  if(store.get("ev_sound")==="1") state.sound=true;
+})();
+
 // ---------- Güneş hesabı (PrayTimes yöntemi) ----------
 function julian(y,m,d){ if(m<=2){y--;m+=12;} const A=Math.floor(y/100), B=2-A+Math.floor(A/4);
   return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5; }
@@ -480,15 +533,15 @@ function tick(){
     r.classList.toggle("passed", i<todayDates.length-1 && now>=todayDates[i+1]);
   });
   updateArc(now); updateSky(now);
-  // ses
-  if(state.sound){
-    NAMES.forEach(([k,label],i)=>{
-      const t=todayDates[i];
-      if(Math.abs(now-t)<1500 && state.lastPlayed!==k+t.getDate()){
-        state.lastPlayed=k+t.getDate(); playAdhan();
-      }
-    });
-  }
+  // ses + bildirim
+  NAMES.forEach(([k,label],i)=>{
+    const t=todayDates[i];
+    if(Math.abs(now-t)<1500 && state.lastPlayed!==k+t.getDate()){
+      state.lastPlayed=k+t.getDate();
+      if(state.sound) playAdhan();
+      notifyVakit(label,t);
+    }
+  });
 }
 
 // ---------- Güneş yayı ----------
@@ -555,10 +608,15 @@ function playTone(){
 // ---------- Konum ----------
 const sel=document.getElementById("citySel");
 CITIES.forEach((c,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=c.n; sel.appendChild(o); });
+// Kayıtlı şehir listedeyse seçili göster
+const savedIdx=CITIES.findIndex(c=>c.n===state.name);
+if(savedIdx>=0) sel.value=savedIdx;
+document.getElementById("locName").textContent=state.name;
 sel.onchange=()=>{ const c=CITIES[sel.value]; setLocation(c.lat,c.lng,c.n); };
 function setLocation(lat,lng,name){
   state.lat=lat; state.lng=lng; state.name=name;
   document.getElementById("locName").textContent=name;
+  store.set("ev_loc",JSON.stringify({lat,lng,name}));
   refreshTimes(); tick();
   if(typeof updateQiblaUI==="function") updateQiblaUI();
 }
@@ -576,15 +634,67 @@ document.getElementById("gpsBtn").onclick=askGPS;
 document.getElementById("locBtn").onclick=askGPS;
 document.getElementById("soundToggle").onchange=e=>{
   state.sound=e.target.checked;
+  store.set("ev_sound",state.sound?"1":"0");
   if(state.sound) unlockAudio(); // tarayıcının ses iznini aç
   else stopAdhan();
 };
+// Kayıtlı ses tercihi: anahtarı işaretle, ilk dokunuşta ses kilidini aç
+if(state.sound){
+  document.getElementById("soundToggle").checked=true;
+  const unlockOnce=()=>{ unlockAudio(); document.removeEventListener("touchstart",unlockOnce); document.removeEventListener("click",unlockOnce); };
+  document.addEventListener("touchstart",unlockOnce,{once:true});
+  document.addEventListener("click",unlockOnce,{once:true});
+}
 const testBtn=document.getElementById("testAdhan");
 testBtn.onclick=()=>{
   if(adhan.paused){ playAdhan(); testBtn.textContent="⏹ Ezanı durdur"; }
   else { stopAdhan(); testBtn.textContent="🔊 Ezanı dinle"; }
 };
 adhan.onended=()=>{ testBtn.textContent="🔊 Ezanı dinle"; };
+
+// ---------- Bildirimler ----------
+const notifBtn=document.getElementById("notifBtn");
+function syncNotifBtn(){
+  if(!("Notification" in window)){ notifBtn.style.display="none"; return; }
+  if(Notification.permission==="granted"){ notifBtn.textContent="🔔 Bildirimler açık ✓"; notifBtn.disabled=true; }
+}
+notifBtn.onclick=async()=>{
+  if(!("Notification" in window)) return;
+  await Notification.requestPermission();
+  syncNotifBtn();
+};
+syncNotifBtn();
+function notifyVakit(label,t){
+  if(!("Notification" in window)||Notification.permission!=="granted") return;
+  try{
+    new Notification(label+" vakti girdi",{
+      body:state.name+" için "+label.toLowerCase()+" vakti: "+t.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"}),
+      icon:"hilal-192.png", badge:"hilal-192.png", tag:"vakit"
+    });
+  }catch(e){}
+}
+
+// ---------- Aylık İmsakiye ----------
+const imOverlay=document.getElementById("imsakiyeOverlay");
+document.getElementById("imsakiyeBtn").onclick=()=>{ imOverlay.classList.add("open"); renderImsakiye(); };
+document.getElementById("imBack").onclick=()=>imOverlay.classList.remove("open");
+function renderImsakiye(){
+  const body=document.getElementById("imBody");
+  const now=new Date(); now.setHours(0,0,0,0);
+  let rows="";
+  for(let d=0;d<30;d++){
+    const day=new Date(now); day.setDate(day.getDate()+d);
+    const t=computeTimes(day,state.lat,state.lng);
+    const dayName=day.toLocaleDateString("tr-TR",{day:"2-digit",month:"2-digit"})+" "+day.toLocaleDateString("tr-TR",{weekday:"short"});
+    rows+=`<tr${d===0?' class="today"':''}><td>${dayName}</td><td>${fmt(t.imsak)}</td><td>${fmt(t.gunes)}</td><td>${fmt(t.ogle)}</td><td>${fmt(t.ikindi)}</td><td>${fmt(t.aksam)}</td><td>${fmt(t.yatsi)}</td></tr>`;
+  }
+  body.innerHTML=`
+    <div class="note" style="margin-bottom:10px">📍 ${state.name} — önümüzdeki 30 gün</div>
+    <table class="imsakiye-table">
+      <thead><tr><th>Tarih</th><th>İmsak</th><th>Güneş</th><th>Öğle</th><th>İkindi</th><th>Akşam</th><th>Yatsı</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
 
 // ---------- Kıble Pusulası ----------
 const KAABA={lat:21.4225,lng:39.8262};
@@ -649,9 +759,15 @@ document.getElementById("qiblaBtn").onclick=async()=>{
   g.innerHTML=s;
 })();
 
-// ---------- Çevrimdışı destek ----------
+// ---------- Çevrimdışı destek + otomatik güncelleme ----------
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
+  // Yeni sürüm devreye girince kullanıcıya haber ver
+  let firstLoad=!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(firstLoad){ firstLoad=false; return; }
+    document.getElementById("updateToast").classList.add("show");
+  });
 }
 window.addEventListener("offline",()=>{ document.getElementById("gpsStatus").textContent="Çevrimdışı mod — vakitler ve ezan çalışmaya devam eder."; });
 window.addEventListener("online",()=>{ document.getElementById("gpsStatus").textContent=""; });
