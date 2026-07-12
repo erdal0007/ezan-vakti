@@ -120,10 +120,11 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
     </div>
     <div class="card">
       <div class="switch-row">
-        <span>Vakit girince ses çal</span>
+        <span>Vakit girince ezan oku</span>
         <label class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></label>
       </div>
-      <div class="note">Ses yalnızca uygulama açıkken çalar. Arka plan bildirimi ve gerçek ezan sesi iOS sürümünde tam olarak çalışacak.</div>
+      <button class="btn" id="testAdhan" style="margin-top:12px">🔊 Ezanı dinle</button>
+      <div class="note">Müezzin: <b>Mişari Raşid el-Afâsî</b>. Ezan yalnızca uygulama ekranda açıkken okunur; arka plan bildirimi iOS sürümünde gelecek. Anahtarı açtıktan sonra sayfayı kapatmayın.</div>
     </div>
     <div class="note" style="padding:0 4px">Vakitler astronomik hesapla (Fecr 18°, İşa 17° – Diyanet yöntemi) üretilir; Diyanet takvimiyle birkaç dakika fark olabilir. Safari'de <b>Paylaş → Ana Ekrana Ekle</b> ile uygulama gibi kullanabilirsiniz.</div>
   </div>
@@ -252,7 +253,7 @@ function tick(){
     NAMES.forEach(([k,label],i)=>{
       const t=todayDates[i];
       if(Math.abs(now-t)<1500 && state.lastPlayed!==k+t.getDate()){
-        state.lastPlayed=k+t.getDate(); playTone();
+        state.lastPlayed=k+t.getDate(); playAdhan();
       }
     });
   }
@@ -287,6 +288,17 @@ function updateSky(now){
 }
 
 // ---------- Ses ----------
+const adhan=new Audio("ezan.mp3"); adhan.preload="auto";
+let audioUnlocked=false;
+function unlockAudio(){
+  // Mobil tarayıcılar ilk kullanıcı etkileşimi olmadan ses çalmaz
+  adhan.play().then(()=>{ adhan.pause(); adhan.currentTime=0; audioUnlocked=true; }).catch(()=>{});
+}
+function playAdhan(){
+  adhan.currentTime=0;
+  adhan.play().catch(()=>{ playTone(); }); // ezan çalamazsa yedek melodi
+}
+function stopAdhan(){ adhan.pause(); adhan.currentTime=0; }
 let audioCtx;
 function playTone(){
   try{
@@ -327,8 +339,15 @@ document.getElementById("gpsBtn").onclick=askGPS;
 document.getElementById("locBtn").onclick=askGPS;
 document.getElementById("soundToggle").onchange=e=>{
   state.sound=e.target.checked;
-  if(state.sound) playTone(); // iOS'ta sesi etkinleştirmek için kullanıcı etkileşimi gerekir
+  if(state.sound) unlockAudio(); // tarayıcının ses iznini aç
+  else stopAdhan();
 };
+const testBtn=document.getElementById("testAdhan");
+testBtn.onclick=()=>{
+  if(adhan.paused){ playAdhan(); testBtn.textContent="⏹ Ezanı durdur"; }
+  else { stopAdhan(); testBtn.textContent="🔊 Ezanı dinle"; }
+};
+adhan.onended=()=>{ testBtn.textContent="🔊 Ezanı dinle"; };
 
 // ---------- Başlat ----------
 refreshTimes(); tick();
