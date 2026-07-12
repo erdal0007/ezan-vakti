@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0D1330">
+<title>Ezan Vakti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0D1330; --deep:#151C42; --gold:#D8A24A; --gold-soft:#E8C687;
+  --ivory:#F3EEE2; --muted:#8B93B8; --line:rgba(216,162,74,.25);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Figtree',system-ui,sans-serif; color:var(--ivory);
+  background:linear-gradient(175deg,var(--sky1,#0D1330) 0%,var(--sky2,#1A2250) 55%,var(--sky3,#2B2A55) 100%);
+  min-height:100dvh; transition:background 2s ease;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+.wrap{max-width:430px;margin:0 auto;padding:20px 22px 40px;position:relative;z-index:1}
+.watermark{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9vh;pointer-events:none;z-index:0;overflow:hidden;user-select:none}
+.watermark span{font-family:'Marcellus',serif;font-size:19vw;letter-spacing:.18em;color:rgba(216,162,74,.14);transform:rotate(-24deg);white-space:nowrap;line-height:1;text-shadow:0 0 24px rgba(216,162,74,.08)}
+@media (min-width:500px){.watermark span{font-size:96px}}
+header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.loc{display:flex;align-items:center;gap:6px;font-weight:600;font-size:15px;color:var(--gold-soft);cursor:pointer;border:none;background:none;font-family:inherit}
+.loc svg{width:14px;height:14px;fill:var(--gold-soft)}
+.dates{text-align:right;font-size:12.5px;color:var(--muted);line-height:1.5}
+.dates .hijri{color:var(--gold-soft);letter-spacing:.04em}
+/* Hero */
+.hero{text-align:center;margin:26px 0 8px}
+.next-label{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
+.next-name{font-family:'Marcellus',serif;font-size:44px;color:var(--gold);margin:4px 0 2px;letter-spacing:.02em}
+.countdown{font-variant-numeric:tabular-nums;font-size:34px;font-weight:600;letter-spacing:.06em}
+.next-at{font-size:13.5px;color:var(--muted);margin-top:4px}
+/* Sun arc */
+.arc-box{margin:18px 0 10px}
+.arc-box svg{width:100%;height:auto;display:block}
+/* Times list */
+.times{margin-top:14px;border-top:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:13px 6px;border-bottom:1px solid rgba(139,147,184,.14);font-size:16.5px}
+.row .name{display:flex;align-items:center;gap:10px}
+.row .dot{width:6px;height:6px;border-radius:50%;background:rgba(139,147,184,.5)}
+.row .time{font-variant-numeric:tabular-nums;font-weight:500;color:var(--ivory)}
+.row.current{background:linear-gradient(90deg,rgba(216,162,74,.13),transparent);border-radius:10px;border-bottom-color:transparent}
+.row.current .dot{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.row.current .name,.row.current .time{color:var(--gold-soft);font-weight:700}
+.row.passed{opacity:.45}
+/* Controls */
+.controls{margin-top:22px;display:flex;flex-direction:column;gap:12px}
+.card{background:rgba(21,28,66,.55);border:1px solid rgba(139,147,184,.18);border-radius:14px;padding:14px 16px}
+.card h3{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+select,button.btn{
+  width:100%;padding:12px;border-radius:10px;font-family:inherit;font-size:15.5px;
+  background:var(--deep);color:var(--ivory);border:1px solid rgba(139,147,184,.3)
+}
+button.btn{cursor:pointer;font-weight:600}
+button.btn.gold{background:var(--gold);color:#241A05;border:none}
+.switch-row{display:flex;justify-content:space-between;align-items:center;font-size:15.5px}
+.switch{position:relative;width:50px;height:29px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:rgba(139,147,184,.35);border-radius:29px;transition:.25s;cursor:pointer}
+.slider:before{content:"";position:absolute;height:23px;width:23px;left:3px;top:3px;background:var(--ivory);border-radius:50%;transition:.25s}
+input:checked+.slider{background:var(--gold)}
+input:checked+.slider:before{transform:translateX(21px)}
+.note{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:10px}
+.gps-status{font-size:12.5px;color:var(--gold-soft);margin-top:8px;min-height:16px}
+footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184,.6);letter-spacing:.05em}
+@media (prefers-reduced-motion: reduce){body{transition:none}}
+</style>
+</head>
+<body>
+<div class="watermark" aria-hidden="true">
+  <span>GEOSER</span>
+  <span>GEOSER</span>
+  <span>GEOSER</span>
+</div>
+<div class="wrap">
+  <header>
+    <button class="loc" id="locBtn" title="Konumumu kullan">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg>
+      <span id="locName">Ankara</span>
+    </button>
+    <div class="dates">
+      <div id="gregDate"></div>
+      <div class="hijri" id="hijriDate"></div>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="next-label">Sıradaki Vakit</div>
+    <div class="next-name" id="nextName">—</div>
+    <div class="countdown" id="countdown">--:--:--</div>
+    <div class="next-at" id="nextAt"></div>
+  </div>
+
+  <div class="arc-box">
+    <svg viewBox="0 0 360 120" id="arcSvg">
+      <path d="M 20 110 Q 180 -40 340 110" fill="none" stroke="rgba(139,147,184,.3)" stroke-width="1.5" stroke-dasharray="3 5"/>
+      <path id="arcProgress" d="" fill="none" stroke="#D8A24A" stroke-width="2.5" stroke-linecap="round"/>
+      <circle id="sunDot" cx="20" cy="110" r="6" fill="#E8C687"/>
+      <circle id="sunGlow" cx="20" cy="110" r="11" fill="none" stroke="#E8C687" stroke-opacity=".35" stroke-width="2"/>
+      <text x="20" y="119" fill="#8B93B8" font-size="9" text-anchor="middle" font-family="Figtree">İmsak</text>
+      <text x="340" y="119" fill="#8B93B8" font-size="9" text-anchor="middle" font-family="Figtree">Yatsı</text>
+    </svg>
+  </div>
+
+  <div class="times" id="timesList"></div>
+
+  <div class="controls">
+    <div class="card">
+      <h3>Konum</h3>
+      <select id="citySel"></select>
+      <button class="btn gold" id="gpsBtn" style="margin-top:10px">📍 GPS ile konumumu bul</button>
+      <div class="gps-status" id="gpsStatus"></div>
+    </div>
+    <div class="card">
+      <div class="switch-row">
+        <span>Vakit girince ses çal</span>
+        <label class="switch"><input type="checkbox" id="soundToggle"><span class="slider"></span></label>
+      </div>
+      <div class="note">Ses yalnızca uygulama açıkken çalar. Arka plan bildirimi ve gerçek ezan sesi iOS sürümünde tam olarak çalışacak.</div>
+    </div>
+    <div class="note" style="padding:0 4px">Vakitler astronomik hesapla (Fecr 18°, İşa 17° – Diyanet yöntemi) üretilir; Diyanet takvimiyle birkaç dakika fark olabilir. Safari'de <b>Paylaş → Ana Ekrana Ekle</b> ile uygulama gibi kullanabilirsiniz.</div>
+  </div>
+
+  <footer>EZAN VAKTİ · GEOSER PROTOTİP</footer>
+</div>
+
+<script>
+// ---------- Şehirler ----------
+const CITIES = [
+  {n:"Ankara", lat:39.9334, lng:32.8597},
+  {n:"İstanbul", lat:41.0082, lng:28.9784},
+  {n:"İzmir", lat:38.4237, lng:27.1428},
+  {n:"Bursa", lat:40.1885, lng:29.0610},
+  {n:"Antalya", lat:36.8969, lng:30.7133},
+  {n:"Adana", lat:37.0000, lng:35.3213},
+  {n:"Konya", lat:37.8746, lng:32.4932},
+  {n:"Gaziantep", lat:37.0662, lng:37.3833},
+  {n:"Kayseri", lat:38.7312, lng:35.4787},
+  {n:"Trabzon", lat:41.0027, lng:39.7168},
+  {n:"Diyarbakır", lat:37.9144, lng:40.2306},
+  {n:"Bitlis (Ahlat)", lat:38.7519, lng:42.4870},
+  {n:"Belgrad (Sırbistan)", lat:44.7866, lng:20.4489}
+];
+let state = { lat:39.9334, lng:32.8597, name:"Ankara", sound:false, lastPlayed:"" };
+
+// ---------- Güneş hesabı (PrayTimes yöntemi) ----------
+function julian(y,m,d){ if(m<=2){y--;m+=12;} const A=Math.floor(y/100), B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5; }
+function sunPos(jd){
+  const D=jd-2451545.0;
+  const g=fix(357.529+0.98560028*D,360), q=fix(280.459+0.98564736*D,360);
+  const L=fix(q+1.915*Math.sin(rad(g))+0.020*Math.sin(rad(2*g)),360);
+  const e=23.439-0.00000036*D;
+  const RA=deg(Math.atan2(Math.cos(rad(e))*Math.sin(rad(L)),Math.cos(rad(L))))/15;
+  const decl=deg(Math.asin(Math.sin(rad(e))*Math.sin(rad(L))));
+  const eqt=q/15-fix(RA,24);
+  return {decl,eqt};
+}
+function fix(a,b){ a=a-b*Math.floor(a/b); return a<0?a+b:a; }
+function rad(d){return d*Math.PI/180} function deg(r){return r*180/Math.PI}
+function hourAngle(lat,decl,angle){
+  const c=(-Math.sin(rad(angle))-Math.sin(rad(lat))*Math.sin(rad(decl)))/(Math.cos(rad(lat))*Math.cos(rad(decl)));
+  if(c>1||c<-1) return NaN;
+  return deg(Math.acos(c))/15;
+}
+function asrAngle(lat,decl,factor){
+  return -deg(Math.atan(1/(factor+Math.tan(rad(Math.abs(lat-decl))))));
+}
+function computeTimes(date,lat,lng){
+  const jd=julian(date.getFullYear(),date.getMonth()+1,date.getDate());
+  const {decl,eqt}=sunPos(jd+0.5);
+  const tzOff=-date.getTimezoneOffset()/60;
+  const noon=fix(12-eqt,24)-lng/15+tzOff;
+  const fajrHA=hourAngle(lat,decl,18);     // Fecr 18°
+  const ishaHA=hourAngle(lat,decl,17);     // İşa 17°
+  const sunHA=hourAngle(lat,decl,0.833);   // güneş doğuş/batış
+  const asrHA=hourAngle(lat,decl,asrAngle(lat,decl,1)); // Şafii/standart
+  return {
+    imsak:  noon-fajrHA,
+    gunes:  noon-sunHA,
+    ogle:   noon+2/60,
+    ikindi: noon+asrHA,
+    aksam:  noon+sunHA,
+    yatsi:  noon+ishaHA
+  };
+}
+function fmt(h){ if(isNaN(h))return "—"; h=fix(h,24);
+  const H=Math.floor(h), M=Math.round((h-H)*60);
+  const HH=(M===60?H+1:H)%24, MM=M===60?0:M;
+  return String(HH).padStart(2,"0")+":"+String(MM).padStart(2,"0"); }
+function toDate(base,h){ const d=new Date(base); d.setHours(0,0,0,0); d.setMilliseconds(fix(h,24)*3600000); return d; }
+
+const NAMES = [["imsak","İmsak"],["gunes","Güneş"],["ogle","Öğle"],["ikindi","İkindi"],["aksam","Akşam"],["yatsi","Yatsı"]];
+
+let today={}, todayDates=[];
+
+function refreshTimes(){
+  const now=new Date();
+  today=computeTimes(now,state.lat,state.lng);
+  todayDates=NAMES.map(([k])=>toDate(now,today[k]));
+  const list=document.getElementById("timesList");
+  list.innerHTML="";
+  NAMES.forEach(([k,label],i)=>{
+    const row=document.createElement("div");
+    row.className="row";
+    row.innerHTML=`<span class="name"><span class="dot"></span>${label}</span><span class="time">${fmt(today[k])}</span>`;
+    row.dataset.idx=i;
+    list.appendChild(row);
+  });
+  document.getElementById("gregDate").textContent=now.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric",weekday:"long"});
+  try{
+    document.getElementById("hijriDate").textContent=new Intl.DateTimeFormat("tr-TR-u-ca-islamic",{day:"numeric",month:"long",year:"numeric"}).format(now);
+  }catch(e){}
+}
+
+function nextIndex(now){
+  for(let i=0;i<todayDates.length;i++){ if(now<todayDates[i]) return i; }
+  return -1; // yatsı geçti → yarınki imsak
+}
+
+function tick(){
+  const now=new Date();
+  if(now.getDate()!==(tick._day||now.getDate())) refreshTimes();
+  tick._day=now.getDate();
+  let idx=nextIndex(now), target, label;
+  if(idx===-1){
+    const t=new Date(now); t.setDate(t.getDate()+1);
+    const tm=computeTimes(t,state.lat,state.lng);
+    target=toDate(t,tm.imsak); label="İmsak";
+    idx=0;
+  } else { target=todayDates[idx]; label=NAMES[idx][1]; }
+  const diff=Math.max(0,target-now);
+  const h=Math.floor(diff/3600000), m=Math.floor(diff/60000)%60, s=Math.floor(diff/1000)%60;
+  document.getElementById("countdown").textContent=[h,m,s].map(x=>String(x).padStart(2,"0")).join(":");
+  document.getElementById("nextName").textContent=label;
+  document.getElementById("nextAt").textContent="Saat "+target.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"});
+  // satırlar
+  document.querySelectorAll(".row").forEach((r,i)=>{
+    r.classList.toggle("current", now>=todayDates[i] && (i===todayDates.length-1||now<todayDates[i+1]));
+    r.classList.toggle("passed", i<todayDates.length-1 && now>=todayDates[i+1]);
+  });
+  updateArc(now); updateSky(now);
+  // ses
+  if(state.sound){
+    NAMES.forEach(([k,label],i)=>{
+      const t=todayDates[i];
+      if(Math.abs(now-t)<1500 && state.lastPlayed!==k+t.getDate()){
+        state.lastPlayed=k+t.getDate(); playTone();
+      }
+    });
+  }
+}
+
+// ---------- Güneş yayı ----------
+function arcPoint(t){ // t: 0..1
+  const x0=20,x1=340,cx=180,cy=-40,y0=110;
+  const x=(1-t)*(1-t)*x0+2*(1-t)*t*cx+t*t*x1;
+  const y=(1-t)*(1-t)*y0+2*(1-t)*t*cy+t*t*y0;
+  return {x,y};
+}
+function updateArc(now){
+  const start=todayDates[0], end=todayDates[5];
+  let t=(now-start)/(end-start); t=Math.max(0,Math.min(1,t));
+  const p=arcPoint(t);
+  sunDot.setAttribute("cx",p.x); sunDot.setAttribute("cy",p.y);
+  sunGlow.setAttribute("cx",p.x); sunGlow.setAttribute("cy",p.y);
+  let d="M 20 110 ";
+  for(let i=1;i<=40;i++){ const q=arcPoint(t*i/40); d+="L "+q.x.toFixed(1)+" "+q.y.toFixed(1)+" "; }
+  arcProgress.setAttribute("d",t>0.01?d:"");
+}
+function updateSky(now){
+  const b=document.body;
+  const sr=todayDates[1], ss=todayDates[4];
+  let s1,s2,s3;
+  if(now<sr||now>ss){ s1="#0A0F28";s2="#141B45";s3="#26234E"; }          // gece
+  else if(now-sr<3600000){ s1="#1B2455";s2="#3D3A6B";s3="#8A5A45"; }     // sabah
+  else if(ss-now<3600000){ s1="#20204A";s2="#4A3560";s3="#A05A38"; }     // akşam
+  else { s1="#16307A";s2="#2A4C9B";s3="#4C6BB8"; }                        // gündüz
+  b.style.setProperty("--sky1",s1); b.style.setProperty("--sky2",s2); b.style.setProperty("--sky3",s3);
+}
+
+// ---------- Ses ----------
+let audioCtx;
+function playTone(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const seq=[[523,0],[659,.35],[784,.7],[659,1.15],[523,1.5]];
+    seq.forEach(([f,t])=>{
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type="sine"; o.frequency.value=f;
+      g.gain.setValueAtTime(0,audioCtx.currentTime+t);
+      g.gain.linearRampToValueAtTime(.4,audioCtx.currentTime+t+.05);
+      g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+t+.5);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(audioCtx.currentTime+t); o.stop(audioCtx.currentTime+t+.55);
+    });
+  }catch(e){}
+}
+
+// ---------- Konum ----------
+const sel=document.getElementById("citySel");
+CITIES.forEach((c,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=c.n; sel.appendChild(o); });
+sel.onchange=()=>{ const c=CITIES[sel.value]; setLocation(c.lat,c.lng,c.n); };
+function setLocation(lat,lng,name){
+  state.lat=lat; state.lng=lng; state.name=name;
+  document.getElementById("locName").textContent=name;
+  refreshTimes(); tick();
+}
+function askGPS(){
+  const st=document.getElementById("gpsStatus");
+  if(!navigator.geolocation){ st.textContent="Bu tarayıcı konum desteklemiyor."; return; }
+  st.textContent="Konum alınıyor…";
+  navigator.geolocation.getCurrentPosition(
+    p=>{ setLocation(p.coords.latitude,p.coords.longitude,"Konumum"); st.textContent="Konum alındı ✓"; },
+    e=>{ st.textContent="Konum alınamadı — listeden şehir seçebilirsiniz."; },
+    {enableHighAccuracy:false,timeout:8000}
+  );
+}
+document.getElementById("gpsBtn").onclick=askGPS;
+document.getElementById("locBtn").onclick=askGPS;
+document.getElementById("soundToggle").onchange=e=>{
+  state.sound=e.target.checked;
+  if(state.sound) playTone(); // iOS'ta sesi etkinleştirmek için kullanıcı etkileşimi gerekir
+};
+
+// ---------- Başlat ----------
+refreshTimes(); tick();
+setInterval(tick,1000);
+</script>
+</body>
+</html>
