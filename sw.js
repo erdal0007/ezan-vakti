@@ -1,4 +1,4 @@
-const CACHE = "ezan-vakti-v4";
+const CACHE = "ezan-vakti-v5";
 const CORE = ["./", "./index.html", "./ezan.mp3", "./manifest.json", "./hilal-192.png", "./hilal-512.png"];
 
 self.addEventListener("install", e => {
