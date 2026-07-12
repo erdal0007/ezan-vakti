@@ -11,7 +11,7 @@
 <link rel="icon" type="image/png" href="hilal-192.png">
 <title>Ezan Vakti</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --night:#0D1330; --deep:#151C42; --gold:#D8A24A; --gold-soft:#E8C687;
@@ -79,6 +79,31 @@ input:checked+.slider:before{transform:translateX(21px)}
 .silsile li:last-child{border-bottom:none}
 .silsile li::before{content:counter(s) ".";color:var(--gold);font-weight:700;min-width:22px;text-align:right}
 .silsile .ks{color:var(--muted);font-size:12.5px}
+/* Kur'an ekranı */
+.quran-overlay{position:fixed;inset:0;background:linear-gradient(175deg,#0D1330,#151C42);z-index:50;display:none;flex-direction:column;overflow:hidden}
+.quran-overlay.open{display:flex}
+.q-head{display:flex;align-items:center;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 18px 12px;border-bottom:1px solid var(--line);flex:none}
+.q-head .back{background:none;border:none;color:var(--gold);font-size:26px;cursor:pointer;padding:2px 6px;line-height:1}
+.q-head .q-title{font-family:'Marcellus',serif;font-size:20px;color:var(--gold-soft);flex:1}
+.q-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 18px 30px}
+.q-reciter{margin-bottom:14px}
+.q-reciter label{display:block;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.surah-item{display:flex;align-items:center;gap:12px;padding:12px 6px;border-bottom:1px solid rgba(139,147,184,.13);cursor:pointer}
+.surah-item .no{width:34px;height:34px;flex:none;border:1px solid var(--line);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:13.5px;font-weight:600;transform:rotate(45deg)}
+.surah-item .no span{transform:rotate(-45deg)}
+.surah-item .s-tr{font-weight:600;font-size:16px}
+.surah-item .s-info{font-size:12px;color:var(--muted)}
+.surah-item .s-ar{margin-left:auto;font-family:'Amiri',serif;font-size:21px;color:var(--gold-soft)}
+.q-search{width:100%;padding:11px 14px;border-radius:10px;background:var(--deep);border:1px solid rgba(139,147,184,.3);color:var(--ivory);font-family:inherit;font-size:15px;margin-bottom:8px}
+/* Sure detay */
+.ayah{padding:14px 4px;border-bottom:1px solid rgba(139,147,184,.13)}
+.ayah .ar{font-family:'Amiri',serif;font-size:24px;line-height:2;text-align:right;direction:rtl;color:var(--ivory)}
+.ayah .no-badge{display:inline-block;font-family:'Figtree';font-size:11px;color:var(--gold);border:1px solid var(--line);border-radius:50%;min-width:22px;height:22px;line-height:20px;text-align:center;margin-right:8px;vertical-align:middle}
+.ayah .tr{font-size:14.5px;color:var(--muted);line-height:1.65;margin-top:8px}
+.q-player{flex:none;padding:10px 18px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:rgba(13,19,48,.92);backdrop-filter:blur(8px)}
+.q-player audio{width:100%;height:40px}
+.q-loading{text-align:center;color:var(--muted);padding:34px 0;font-size:14.5px}
+.bismillah{font-family:'Amiri',serif;text-align:center;font-size:26px;color:var(--gold-soft);padding:14px 0 6px}
 footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184,.6);letter-spacing:.05em}
 @media (prefers-reduced-motion: reduce){body{transition:none}}
 </style>
@@ -123,6 +148,10 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
 
   <div class="controls">
     <div class="card">
+      <button class="btn gold" id="quranBtn" style="font-size:17px;padding:14px">📖 Kur'an-ı Kerim — Oku &amp; Dinle</button>
+      <div class="note">114 sure: Arapça metin, Diyanet meali ve dünyaca ünlü hafızlardan dinleme.</div>
+    </div>
+    <div class="card">
       <h3>Konum</h3>
       <select id="citySel"></select>
       <button class="btn gold" id="gpsBtn" style="margin-top:10px">📍 GPS ile konumumu bul</button>
@@ -156,6 +185,114 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
 
   <footer>EZAN VAKTİ · GEOSER PROTOTİP</footer>
 </div>
+
+<!-- Kur'an-ı Kerim ekranı -->
+<div class="quran-overlay" id="quranOverlay">
+  <div class="q-head">
+    <button class="back" id="qBack">‹</button>
+    <div class="q-title" id="qTitle">Kur'an-ı Kerim</div>
+  </div>
+  <div class="q-body" id="qBody"></div>
+  <div class="q-player" id="qPlayer" style="display:none">
+    <audio id="qAudio" controls preload="none"></audio>
+  </div>
+</div>
+
+<script>
+// ================= KUR'AN-I KERİM =================
+const RECITERS=[
+  ["ar.alafasy","Mişari Raşid el-Afâsî (Kuveyt)"],
+  ["ar.abdulbasitmurattal","Abdülbasit Abdüssamed (Mısır)"],
+  ["ar.husary","Mahmud Halil el-Husarî (Mısır)"],
+  ["ar.minshawi","Muhammed Sıddîk el-Minşâvî (Mısır)"],
+  ["ar.abdurrahmaansudais","Abdurrahman es-Südeys (Mekke İmamı)"],
+  ["ar.saoodshuraym","Suud eş-Şureym (Mekke İmamı)"],
+  ["ar.mahermuaiqly","Mâhir el-Muaykılî (Mekke İmamı)"],
+  ["ar.hanirifai","Hâni er-Rifâî (Cidde)"]
+];
+let qReciter="ar.alafasy", surahList=null, currentSurah=null;
+const qOverlay=document.getElementById("quranOverlay"),
+      qBody=document.getElementById("qBody"),
+      qTitle=document.getElementById("qTitle"),
+      qPlayer=document.getElementById("qPlayer"),
+      qAudio=document.getElementById("qAudio");
+
+document.getElementById("quranBtn").onclick=()=>{ qOverlay.classList.add("open"); showSurahList(); };
+document.getElementById("qBack").onclick=()=>{
+  if(currentSurah){ currentSurah=null; qAudio.pause(); qPlayer.style.display="none"; showSurahList(); }
+  else { qOverlay.classList.remove("open"); qAudio.pause(); }
+};
+
+async function fetchSurahList(){
+  if(surahList) return surahList;
+  const r=await fetch("https://api.alquran.cloud/v1/surah");
+  const d=await r.json();
+  surahList=d.data;
+  return surahList;
+}
+
+async function showSurahList(){
+  qTitle.textContent="Kur'an-ı Kerim";
+  qBody.innerHTML='<div class="q-loading">Sureler yükleniyor…</div>';
+  let list;
+  try{ list=await fetchSurahList(); }
+  catch(e){ qBody.innerHTML='<div class="q-loading">Sure listesi için internet bağlantısı gerekli.<br>Bağlantınızı kontrol edip tekrar deneyin.</div>'; return; }
+  const recOpts=RECITERS.map(([v,n])=>`<option value="${v}"${v===qReciter?" selected":""}>${n}</option>`).join("");
+  qBody.innerHTML=`
+    <div class="q-reciter">
+      <label>Hafız Seçin</label>
+      <select id="reciterSel">${recOpts}</select>
+    </div>
+    <input class="q-search" id="qSearch" placeholder="Sure ara… (ör. Yasin)">
+    <div id="surahListEl"></div>`;
+  document.getElementById("reciterSel").onchange=e=>{ qReciter=e.target.value; };
+  const listEl=document.getElementById("surahListEl");
+  const render=(filter)=>{
+    listEl.innerHTML=list
+      .filter(s=>!filter||s.englishName.toLowerCase().includes(filter)||String(s.number)===filter)
+      .map(s=>`<div class="surah-item" data-n="${s.number}">
+        <div class="no"><span>${s.number}</span></div>
+        <div><div class="s-tr">${s.englishName}</div>
+        <div class="s-info">${s.numberOfAyahs} ayet · ${s.revelationType==="Meccan"?"Mekkî":"Medenî"}</div></div>
+        <div class="s-ar">${s.name.replace("سُورَةُ ","")}</div>
+      </div>`).join("");
+    listEl.querySelectorAll(".surah-item").forEach(el=>{ el.onclick=()=>openSurah(Number(el.dataset.n)); });
+  };
+  render("");
+  document.getElementById("qSearch").oninput=e=>render(e.target.value.trim().toLowerCase());
+}
+
+async function openSurah(n){
+  currentSurah=n;
+  const meta=surahList.find(s=>s.number===n);
+  qTitle.textContent=n+". "+meta.englishName;
+  qBody.innerHTML='<div class="q-loading">Sure yükleniyor…</div>';
+  qBody.scrollTop=0;
+  try{
+    const r=await fetch(`https://api.alquran.cloud/v1/surah/${n}/editions/quran-uthmani,tr.diyanet`);
+    const d=await r.json();
+    const ar=d.data[0].ayahs, tr=d.data[1].ayahs;
+    let html="";
+    if(n!==1&&n!==9) html+='<div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>';
+    html+=ar.map((a,i)=>{
+      let text=a.text;
+      if(i===0&&n!==1&&n!==9) text=text.replace(/^بِسْمِ [^ ]+ [^ ]+ [^ ]+ /,"");
+      return `<div class="ayah">
+        <div class="ar">${text} <span class="no-badge">${a.numberInSurah}</span></div>
+        <div class="tr">${tr[i]?tr[i].text:""}</div>
+      </div>`;
+    }).join("");
+    qBody.innerHTML=html;
+    // Ses çalar
+    qPlayer.style.display="block";
+    qAudio.src=`https://cdn.islamic.network/quran/audio-surah/128/${qReciter}/${n}.mp3`;
+    qAudio.onerror=()=>{ qPlayer.insertAdjacentHTML("afterbegin",'<div class="note" style="margin-bottom:6px">Bu hafızda ses yüklenemedi — listeden başka bir hafız seçip sureyi yeniden açın.</div>'); };
+  }catch(e){
+    qBody.innerHTML='<div class="q-loading">Sure yüklenemedi. İnternet bağlantınızı kontrol edin.</div>';
+    qPlayer.style.display="none";
+  }
+}
+</script>
 
 <script>
 // ---------- Şehirler ----------
