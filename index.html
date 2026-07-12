@@ -104,6 +104,12 @@ input:checked+.slider:before{transform:translateX(21px)}
 .q-player audio{width:100%;height:40px}
 .q-loading{text-align:center;color:var(--muted);padding:34px 0;font-size:14.5px}
 .bismillah{font-family:'Amiri',serif;text-align:center;font-size:26px;color:var(--gold-soft);padding:14px 0 6px}
+/* Kıble pusulası */
+.qibla-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.qibla-dial{width:230px;height:230px}
+.qibla-deg{font-size:15px;color:var(--gold-soft);font-weight:600;text-align:center}
+.qibla-hint{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.5}
+.qibla-ok{color:#7BD88F !important;font-weight:700}
 footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184,.6);letter-spacing:.05em}
 @media (prefers-reduced-motion: reduce){body{transition:none}}
 </style>
@@ -164,6 +170,34 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
       </div>
       <button class="btn" id="testAdhan" style="margin-top:12px">🔊 Ezanı dinle</button>
       <div class="note">Müezzin: <b>Mişari Raşid el-Afâsî</b>. Ezan yalnızca uygulama ekranda açıkken okunur; arka plan bildirimi iOS sürümünde gelecek. Anahtarı açtıktan sonra sayfayı kapatmayın.</div>
+    </div>
+    <div class="card">
+      <h3>Kıble Pusulası</h3>
+      <div class="qibla-wrap">
+        <svg class="qibla-dial" viewBox="0 0 200 200">
+          <!-- Sabit ok: telefonun baktığı yön -->
+          <polygon points="100,6 94,22 106,22" fill="#F3EEE2"/>
+          <!-- Dönen kadran -->
+          <g id="qiblaDial">
+            <circle cx="100" cy="100" r="86" fill="rgba(21,28,66,.6)" stroke="rgba(216,162,74,.35)" stroke-width="1.5"/>
+            <circle cx="100" cy="100" r="70" fill="none" stroke="rgba(139,147,184,.2)" stroke-width="1"/>
+            <g id="qiblaTicks"></g>
+            <text x="100" y="35" fill="#E8C687" font-size="15" font-weight="700" text-anchor="middle" font-family="Figtree">K</text>
+            <text x="169" y="105" fill="#8B93B8" font-size="13" text-anchor="middle" font-family="Figtree">D</text>
+            <text x="100" y="175" fill="#8B93B8" font-size="13" text-anchor="middle" font-family="Figtree">G</text>
+            <text x="31" y="105" fill="#8B93B8" font-size="13" text-anchor="middle" font-family="Figtree">B</text>
+            <!-- Kıble ibresi -->
+            <g id="qiblaNeedle">
+              <line x1="100" y1="100" x2="100" y2="42" stroke="#D8A24A" stroke-width="3.5" stroke-linecap="round"/>
+              <text x="100" y="38" font-size="17" text-anchor="middle">🕋</text>
+            </g>
+            <circle cx="100" cy="100" r="5" fill="#D8A24A"/>
+          </g>
+        </svg>
+        <div class="qibla-deg" id="qiblaDeg">—</div>
+        <button class="btn gold" id="qiblaBtn">🧭 Pusulayı başlat</button>
+        <div class="qibla-hint" id="qiblaHint">Pusulayı başlatın; telefonu döndürün, 🕋 işareti üstteki beyaz oka gelince kıbleye dönüksünüz.</div>
+      </div>
     </div>
     <div class="card silsile">
       <h3>Ülyani Derneği</h3>
@@ -526,6 +560,7 @@ function setLocation(lat,lng,name){
   state.lat=lat; state.lng=lng; state.name=name;
   document.getElementById("locName").textContent=name;
   refreshTimes(); tick();
+  if(typeof updateQiblaUI==="function") updateQiblaUI();
 }
 function askGPS(){
   const st=document.getElementById("gpsStatus");
@@ -551,6 +586,69 @@ testBtn.onclick=()=>{
 };
 adhan.onended=()=>{ testBtn.textContent="🔊 Ezanı dinle"; };
 
+// ---------- Kıble Pusulası ----------
+const KAABA={lat:21.4225,lng:39.8262};
+function qiblaBearing(lat,lng){
+  const dLng=rad(KAABA.lng-lng);
+  const y=Math.sin(dLng)*Math.cos(rad(KAABA.lat));
+  const x=Math.cos(rad(lat))*Math.sin(rad(KAABA.lat))-Math.sin(rad(lat))*Math.cos(rad(KAABA.lat))*Math.cos(dLng);
+  return fix(deg(Math.atan2(y,x)),360);
+}
+let compassOn=false, curHeading=0;
+function updateQiblaUI(){
+  const bearing=qiblaBearing(state.lat,state.lng);
+  const dial=document.getElementById("qiblaDial");
+  const needle=document.getElementById("qiblaNeedle");
+  const degEl=document.getElementById("qiblaDeg");
+  needle.setAttribute("transform",`rotate(${bearing} 100 100)`);
+  if(compassOn){
+    dial.setAttribute("transform",`rotate(${-curHeading} 100 100)`);
+    let delta=fix(bearing-curHeading,360); if(delta>180) delta-=360;
+    const ok=Math.abs(delta)<=5;
+    degEl.textContent=ok?"✓ Kıbleye dönüksünüz":`Kıble: ${Math.round(bearing)}° · ${Math.abs(Math.round(delta))}° ${delta>0?"sağa":"sola"} dönün`;
+    degEl.classList.toggle("qibla-ok",ok);
+  }else{
+    degEl.textContent=`Kıble açısı: Kuzeyden ${Math.round(bearing)}°`;
+  }
+}
+function onOrient(e){
+  let h=null;
+  if(typeof e.webkitCompassHeading==="number") h=e.webkitCompassHeading;      // iOS
+  else if(e.absolute===true&&typeof e.alpha==="number") h=fix(360-e.alpha,360); // Android
+  else if(typeof e.alpha==="number") h=fix(360-e.alpha,360);
+  if(h!==null){ curHeading=h; updateQiblaUI(); }
+}
+document.getElementById("qiblaBtn").onclick=async()=>{
+  const hint=document.getElementById("qiblaHint");
+  try{
+    if(typeof DeviceOrientationEvent!=="undefined"&&typeof DeviceOrientationEvent.requestPermission==="function"){
+      const p=await DeviceOrientationEvent.requestPermission(); // iOS izni
+      if(p!=="granted"){ hint.textContent="Pusula izni verilmedi. Aşağıdaki sabit açıyı kullanabilirsiniz."; updateQiblaUI(); return; }
+    }
+    window.addEventListener("deviceorientationabsolute",onOrient,true);
+    window.addEventListener("deviceorientation",onOrient,true);
+    compassOn=true;
+    document.getElementById("qiblaBtn").style.display="none";
+    hint.textContent="Telefonu düz tutup döndürün — 🕋 üstteki beyaz oka gelince kıbleye dönüksünüz. Yakında metal eşya olmasın.";
+    updateQiblaUI();
+  }catch(err){
+    hint.textContent="Bu cihazda pusula sensörü kullanılamıyor. Aşağıdaki sabit açıyı kullanın: kuzeyi bulup o kadar derece dönün.";
+    updateQiblaUI();
+  }
+};
+// Küçük derece çizgileri
+(function(){
+  const g=document.getElementById("qiblaTicks");
+  let s="";
+  for(let a=0;a<360;a+=15){
+    const r1=86,r2=a%90===0?76:81;
+    const x1=100+r1*Math.sin(rad(a)),y1=100-r1*Math.cos(rad(a));
+    const x2=100+r2*Math.sin(rad(a)),y2=100-r2*Math.cos(rad(a));
+    s+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(139,147,184,.4)" stroke-width="${a%90===0?2:1}"/>`;
+  }
+  g.innerHTML=s;
+})();
+
 // ---------- Çevrimdışı destek ----------
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
@@ -560,6 +658,7 @@ window.addEventListener("online",()=>{ document.getElementById("gpsStatus").text
 
 // ---------- Başlat ----------
 refreshTimes(); tick();
+updateQiblaUI();
 setInterval(tick,1000);
 </script>
 </body>
