@@ -193,9 +193,7 @@ footer{text-align:center;margin-top:26px;font-size:11.5px;color:rgba(139,147,184
     <div class="q-title" id="qTitle">Kur'an-ı Kerim</div>
   </div>
   <div class="q-body" id="qBody"></div>
-  <div class="q-player" id="qPlayer" style="display:none">
-    <audio id="qAudio" controls preload="none"></audio>
-  </div>
+  <div class="q-player" id="qPlayer" style="display:none"></div>
 </div>
 
 <script>
@@ -214,13 +212,14 @@ let qReciter="ar.alafasy", surahList=null, currentSurah=null;
 const qOverlay=document.getElementById("quranOverlay"),
       qBody=document.getElementById("qBody"),
       qTitle=document.getElementById("qTitle"),
-      qPlayer=document.getElementById("qPlayer"),
-      qAudio=document.getElementById("qAudio");
+      qPlayer=document.getElementById("qPlayer");
 
 document.getElementById("quranBtn").onclick=()=>{ qOverlay.classList.add("open"); showSurahList(); };
 document.getElementById("qBack").onclick=()=>{
-  if(currentSurah){ currentSurah=null; qAudio.pause(); qPlayer.style.display="none"; showSurahList(); }
-  else { qOverlay.classList.remove("open"); qAudio.pause(); }
+  const player=document.getElementById("qAudioEl");
+  if(player) player.pause();
+  if(currentSurah){ currentSurah=null; qPlayer.style.display="none"; showSurahList(); }
+  else { qOverlay.classList.remove("open"); }
 };
 
 async function fetchSurahList(){
@@ -283,13 +282,50 @@ async function openSurah(n){
       </div>`;
     }).join("");
     qBody.innerHTML=html;
-    // Ses çalar
+    // Ses çalar: ayet ayet çalma (tüm hafızlarda çalışır)
+    qPlaylist=[]; qIdx=-1;
     qPlayer.style.display="block";
-    qAudio.src=`https://cdn.islamic.network/quran/audio-surah/128/${qReciter}/${n}.mp3`;
-    qAudio.onerror=()=>{ qPlayer.insertAdjacentHTML("afterbegin",'<div class="note" style="margin-bottom:6px">Bu hafızda ses yüklenemedi — listeden başka bir hafız seçip sureyi yeniden açın.</div>'); };
+    qPlayer.innerHTML='<button class="btn gold" id="qPlayBtn">▶ Sureyi dinle</button><audio id="qAudioEl" controls preload="none" style="width:100%;height:40px;margin-top:8px;display:none"></audio>';
+    document.getElementById("qPlayBtn").onclick=()=>startSurahAudio(n);
   }catch(e){
     qBody.innerHTML='<div class="q-loading">Sure yüklenemedi. İnternet bağlantınızı kontrol edin.</div>';
     qPlayer.style.display="none";
+  }
+}
+
+let qPlaylist=[], qIdx=-1;
+async function startSurahAudio(n){
+  const btn=document.getElementById("qPlayBtn");
+  const player=document.getElementById("qAudioEl");
+  btn.textContent="Yükleniyor…"; btn.disabled=true;
+  try{
+    const r=await fetch(`https://api.alquran.cloud/v1/surah/${n}/${qReciter}`);
+    const d=await r.json();
+    qPlaylist=d.data.ayahs.map(a=>a.audio);
+    btn.style.display="none"; player.style.display="block";
+    playAyah(0);
+  }catch(e){
+    btn.textContent="Ses alınamadı — tekrar deneyin"; btn.disabled=false;
+  }
+}
+function playAyah(i){
+  const player=document.getElementById("qAudioEl");
+  if(!player||i>=qPlaylist.length){ qIdx=-1; highlightAyah(-1); return; }
+  qIdx=i;
+  player.src=qPlaylist[i];
+  player.play().catch(()=>{});
+  highlightAyah(i);
+  player.onended=()=>playAyah(i+1);
+  player.onerror=()=>playAyah(i+1); // tek ayet yüklenemezse atla
+}
+function highlightAyah(i){
+  qBody.querySelectorAll(".ayah").forEach((el,idx)=>{
+    el.style.background = idx===i ? "linear-gradient(90deg,rgba(216,162,74,.14),transparent)" : "";
+    el.style.borderRadius = idx===i ? "10px" : "";
+  });
+  if(i>=0){
+    const el=qBody.querySelectorAll(".ayah")[i];
+    if(el) el.scrollIntoView({behavior:"smooth",block:"center"});
   }
 }
 </script>
