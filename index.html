@@ -2,8 +2,10 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0D1330">
 <link rel="manifest" href="manifest.json?v=3">
@@ -414,6 +416,10 @@ const store={
   get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 };
+// Dış kaynaklı (API / localStorage) metni innerHTML'e koymadan önce kaçışla
+function esc(v){
+  return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
 const RECITERS=[
   ["ar.alafasy","Mişari Raşid el-Afâsî (Kuveyt)"],
   ["ar.abdulbasitmurattal","Abdülbasit Abdüssamed (Mısır)"],
@@ -441,7 +447,9 @@ document.getElementById("qBack").onclick=()=>{
 async function fetchSurahList(){
   if(surahList) return surahList;
   const r=await fetch("https://api.alquran.cloud/v1/surah");
+  if(!r.ok) throw new Error("HTTP "+r.status);
   const d=await r.json();
+  if(!Array.isArray(d.data)) throw new Error("Geçersiz yanıt");
   surahList=d.data;
   return surahList;
 }
@@ -466,10 +474,10 @@ async function showSurahList(){
     listEl.innerHTML=list
       .filter(s=>!filter||s.englishName.toLowerCase().includes(filter)||String(s.number)===filter)
       .map(s=>`<div class="surah-item" data-n="${s.number}">
-        <div class="no"><span>${s.number}</span></div>
-        <div><div class="s-tr">${s.englishName}</div>
-        <div class="s-info">${s.numberOfAyahs} ayet · ${s.revelationType==="Meccan"?"Mekkî":"Medenî"}</div></div>
-        <div class="s-ar">${s.name.replace("سُورَةُ ","")}</div>
+        <div class="no"><span>${esc(s.number)}</span></div>
+        <div><div class="s-tr">${esc(s.englishName)}</div>
+        <div class="s-info">${esc(s.numberOfAyahs)} ayet · ${s.revelationType==="Meccan"?"Mekkî":"Medenî"}</div></div>
+        <div class="s-ar">${esc(String(s.name).replace("سُورَةُ ",""))}</div>
       </div>`).join("");
     listEl.querySelectorAll(".surah-item").forEach(el=>{ el.onclick=()=>openSurah(Number(el.dataset.n)); });
   };
@@ -485,7 +493,9 @@ async function openSurah(n){
   qBody.scrollTop=0;
   try{
     const r=await fetch(`https://api.alquran.cloud/v1/surah/${n}/editions/quran-uthmani,tr.diyanet`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
     const d=await r.json();
+    if(currentSurah!==n) return; // kullanıcı bu arada geri döndü / başka sure açtı
     const ar=d.data[0].ayahs, tr=d.data[1].ayahs;
     let html="";
     if(n!==1&&n!==9) html+='<div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>';
@@ -493,8 +503,8 @@ async function openSurah(n){
       let text=a.text;
       if(i===0&&n!==1&&n!==9) text=text.replace(/^بِسْمِ [^ ]+ [^ ]+ [^ ]+ /,"");
       return `<div class="ayah">
-        <div class="ar">${text} <span class="no-badge">${a.numberInSurah}</span></div>
-        <div class="tr">${tr[i]?tr[i].text:""}</div>
+        <div class="ar">${esc(text)} <span class="no-badge">${esc(a.numberInSurah)}</span></div>
+        <div class="tr">${tr[i]?esc(tr[i].text):""}</div>
       </div>`;
     }).join("");
     qBody.innerHTML=html;
@@ -504,6 +514,7 @@ async function openSurah(n){
     qPlayer.innerHTML='<button class="btn gold" id="qPlayBtn">▶ Sureyi dinle</button><audio id="qAudioEl" controls preload="none" style="width:100%;height:40px;margin-top:8px;display:none"></audio>';
     document.getElementById("qPlayBtn").onclick=()=>startSurahAudio(n);
   }catch(e){
+    if(currentSurah!==n) return;
     qBody.innerHTML='<div class="q-loading">Sure yüklenemedi. İnternet bağlantınızı kontrol edin.</div>';
     qPlayer.style.display="none";
   }
@@ -516,9 +527,12 @@ async function startSurahAudio(n){
   const player=document.getElementById("qAudioEl");
   btn.textContent="Yükleniyor…"; btn.disabled=true;
   try{
-    const r=await fetch(`https://api.alquran.cloud/v1/surah/${n}/${qReciter}`);
+    const r=await fetch(`https://api.alquran.cloud/v1/surah/${n}/${encodeURIComponent(qReciter)}`);
+    if(!r.ok) throw new Error("HTTP "+r.status);
     const d=await r.json();
-    qPlaylist=d.data.ayahs.map(a=>a.audio);
+    if(currentSurah!==n) return;
+    // Yalnızca http(s) ses adresleri; http → https (karışık içerik engeline takılmasın)
+    qPlaylist=d.data.ayahs.map(a=>String(a.audio||"")).filter(u=>/^https?:\/\//i.test(u)).map(u=>u.replace(/^http:/i,"https:"));
     btn.style.display="none"; player.style.display="block";
     playAyah(0);
   }catch(e){
@@ -569,7 +583,13 @@ let state = { lat:39.9334, lng:32.8597, name:"Ankara", sound:false, lastPlayed:"
 // ---------- Kayıtlı ayarları yükle ----------
 (function loadSaved(){
   const loc=store.get("ev_loc");
-  if(loc){ try{ const l=JSON.parse(loc); state.lat=l.lat; state.lng=l.lng; state.name=l.name; }catch(e){} }
+  if(loc){ try{
+    const l=JSON.parse(loc);
+    const lat=Number(l.lat), lng=Number(l.lng);
+    if(isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180){
+      state.lat=lat; state.lng=lng; state.name=String(l.name||"Konumum").slice(0,60);
+    }
+  }catch(e){} }
   if(store.get("ev_sound")==="1") state.sound=true;
 })();
 
@@ -651,7 +671,7 @@ function nextIndex(now){
 
 function tick(){
   const now=new Date();
-  if(now.getDate()!==(tick._day||now.getDate())) refreshTimes();
+  if(now.getDate()!==(tick._day||now.getDate())){ refreshTimes(); if(typeof renderTracker==="function") renderTracker(); }
   tick._day=now.getDate();
   let idx=nextIndex(now), target, label;
   if(idx===-1){
@@ -703,6 +723,7 @@ function arcPoint(t){ // t: 0..1
   return {x,y};
 }
 function updateArc(now){
+  const sunDot=document.getElementById("sunDot"), sunGlow=document.getElementById("sunGlow"), arcProgress=document.getElementById("arcProgress");
   const start=todayDates[0], end=todayDates[5];
   let t=(now-start)/(end-start); t=Math.max(0,Math.min(1,t));
   const p=arcPoint(t);
@@ -818,12 +839,19 @@ notifBtn.onclick=async()=>{
 syncNotifBtn();
 function notifyVakit(label,t){
   if(!("Notification" in window)||Notification.permission!=="granted") return;
-  try{
-    new Notification(label+" vakti girdi",{
-      body:state.name+" için "+label.toLowerCase()+" vakti: "+t.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"}),
-      icon:"hilal-192.png", badge:"hilal-192.png", tag:"vakit"
-    });
-  }catch(e){}
+  const title=label+" vakti girdi";
+  const opts={
+    body:state.name+" için "+label.toLocaleLowerCase("tr-TR")+" vakti: "+t.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"}),
+    icon:"hilal-192.png", badge:"hilal-192.png", tag:"vakit"
+  };
+  const direct=()=>{ try{ new Notification(title,opts); }catch(e){} };
+  // Android Chrome'da "new Notification" desteklenmez; service worker üzerinden göster
+  if("serviceWorker" in navigator&&navigator.serviceWorker.controller){
+    navigator.serviceWorker.getRegistration().then(reg=>{
+      if(reg&&reg.showNotification) return reg.showNotification(title,opts);
+      direct();
+    }).catch(direct);
+  } else direct();
 }
 
 // ---------- Aylık İmsakiye ----------
@@ -841,7 +869,7 @@ function renderImsakiye(){
     rows+=`<tr${d===0?' class="today"':''}><td>${dayName}</td><td>${fmt(t.imsak)}</td><td>${fmt(t.gunes)}</td><td>${fmt(t.ogle)}</td><td>${fmt(t.ikindi)}</td><td>${fmt(t.aksam)}</td><td>${fmt(t.yatsi)}</td></tr>`;
   }
   body.innerHTML=`
-    <div class="note" style="margin-bottom:10px">📍 ${state.name} — önümüzdeki 30 gün</div>
+    <div class="note" style="margin-bottom:10px">📍 ${esc(state.name)} — önümüzdeki 30 gün</div>
     <table class="imsakiye-table">
       <thead><tr><th>Tarih</th><th>İmsak</th><th>Güneş</th><th>Öğle</th><th>İkindi</th><th>Akşam</th><th>Yatsı</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -873,10 +901,12 @@ function updateQiblaUI(){
     degEl.textContent=`Kıble açısı: Kuzeyden ${Math.round(bearing)}°`;
   }
 }
+let gotAbsolute=false;
 function onOrient(e){
   let h=null;
   if(typeof e.webkitCompassHeading==="number") h=e.webkitCompassHeading;      // iOS
-  else if(e.absolute===true&&typeof e.alpha==="number") h=fix(360-e.alpha,360); // Android
+  else if(e.absolute===true&&typeof e.alpha==="number"){ gotAbsolute=true; h=fix(360-e.alpha,360); } // Android
+  else if(gotAbsolute) return; // göreli alpha kuzeye bağlı değil; mutlak veriyi ezmesin
   else if(typeof e.alpha==="number") h=fix(360-e.alpha,360);
   if(h!==null){ curHeading=h; updateQiblaUI(); }
 }
@@ -947,6 +977,7 @@ let turkuAutoPlayed=false;
 function turkuAutoStart(){
   if(turkuAutoPlayed||!turkuAuto.checked) return;
   turkuAutoPlayed=true;
+  if(!adhan.paused) return; // ilk dokunuş ezanı başlattıysa üstüne türkü çalma
   turku.play().catch(()=>{});
 }
 document.addEventListener("touchstart",turkuAutoStart,{once:true});
@@ -954,7 +985,8 @@ document.addEventListener("click",turkuAutoStart,{once:true});
 
 // ---------- Namaz Takibi ----------
 const PRAYERS=[["sabah","Sabah"],["ogle","Öğle"],["ikindi","İkindi"],["aksam","Akşam"],["yatsi","Yatsı"]];
-function dkey(d){ return d.toISOString().slice(0,10); }
+// Yerel tarih (toISOString UTC verir; Türkiye'de 00:00–03:00 arası önceki güne yazılıyordu)
+function dkey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function getTrack(){ try{ return JSON.parse(store.get("ev_track")||"{}"); }catch(e){ return {}; } }
 function setTrack(t){ store.set("ev_track",JSON.stringify(t)); }
 function renderTracker(){
